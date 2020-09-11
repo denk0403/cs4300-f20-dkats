@@ -1,0 +1,19 @@
+{
+    "name": "cs4300-f20-dkats",
+    "version": "1.0.0",
+    "description": "CS4300 Assignments",
+    "private": true,
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/denk0403/cs4300-f20-dkats.git"
+    },
+    "author": "Dennis Kats",
+    "license": "ISC",
+    "dependencies": {
+        "express": "^4.17.1"
+    }
+}

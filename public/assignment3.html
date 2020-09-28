@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>A WebGL Mini CAD</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        canvas {
+            border: 1px solid gray;
+        }
+
+        div.labelGroup {
+            display: block;
+        }
+
+        label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        label .labelText {
+            display: inline-block;
+            width: 55px;
+        }
+
+        input:not([type="radio"]) {
+            width: 150px;
+        }
+
+        button:hover {
+            filter: brightness(1.04);
+        }
+
+        button:active {
+            filter: brightness(0.9);
+        }
+    </style>
+
+    <script id="vertex-shader-2d" type="x-shader/x-vertex">
+        attribute vec2 a_coords;
+        uniform vec2 u_resolution;
+
+        void main() {
+            vec2 zeroToOne = a_coords / u_resolution;
+            vec2 zeroToTwo = zeroToOne * 2.0;
+            vec2 minusOneToOne = zeroToTwo - 1.0;
+            vec2 clipSpace = minusOneToOne * vec2(1, -1);
+            gl_Position = vec4(clipSpace, 0, 1);
+        }
+    </script>
+
+    <script id="fragment-shader-2d" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 u_color;
+        void main() {
+            gl_FragColor = u_color;
+        }
+    </script>
+
+    <script src="assignment3.js"></script>
+
+</head>
+
+<body onload="init();render()">
+    <div class="container">
+        <h1>A WebGL Mini CAD</h1>
+        <canvas id="canvas" width="500px" height="300px">
+            Your browser does not support the canvas element.
+        </canvas>
+        <br />
+
+        <div class="container">
+            <div class="labelGroup">
+                <label for="x">
+                    <span class="labelText" title="Center X">X:</span>
+                    <input id="x" value="20">
+                </label>
+
+                <label for="width">
+                    <span class="labelText" title="Width">Width:</span>
+                    <input id="width" value="20"><br />
+                </label>
+            </div>
+
+            <div class="labelGroup">
+                <label for="y">
+                    <span class="labelText" title="Center Y">Y:</span>
+                    <input id="y" value="20">
+                </label>
+
+                <label for="height">
+                    <span class="labelText" title="Height">Height:</span>
+                    <input id="height" value="20"><br />
+                </label>
+            </div>
+
+            <div class="labelGroup">
+                <label for="color">
+                    <span class="labelText" title="Color">Color:</span>
+                    <input id="color" type="color">
+                </label>
+
+                <br />
+
+                <label for="rectangleRadio">
+                    <input id="rectangleRadio" type="radio" name="shape" checked value="RECTANGLE" />
+                    <span title="Color">Rectangle</span>
+                </label>
+
+                <label for="triangleRadio">
+                    <input id="triangleRadio" type="radio" name="shape" value="TRIANGLE" />
+                    <span title="Color">Triangle</span>
+                </label>
+            </div>
+
+            <!-- <button onclick="addRectangle()" style="margin: 5px 0 0 15px;">
+                Add Rectangle
+            </button> -->
+        </div>
+
+    </div>
+
+</body>
+
+</html>

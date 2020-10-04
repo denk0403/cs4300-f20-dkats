@@ -1,6 +1,6 @@
 /**
  * @typedef Shape
- * @property {"RECTANGLE" | "TRIANGLE"} type
+ * @property {"RECTANGLE" | "TRIANGLE" | "CIRCLE" | "STAR"} type
  * @property {{ x: Number, y: Number }} center
  * @property {{ width: Number, height: Number }} dimensions
  * @property {RGBColor} color
@@ -14,10 +14,11 @@ const RED_RGB = webglUtils.hexToRgb(RED_HEX);
 const BLUE_HEX = "#0000FF";
 const BLUE_RGB = webglUtils.hexToRgb(BLUE_HEX);
 
+// SHAPES
 const RECTANGLE = "RECTANGLE";
 const TRIANGLE = "TRIANGLE"; // Isosceles Triangle
-const CIRCLE = "CIRCLE"; // Isosceles Triangle
-const STAR = "STAR"; // Isosceles Triangle
+const CIRCLE = "CIRCLE";
+const STAR = "STAR"; // 5-point Star
 
 const ORIGIN = { x: 0, y: 0 };
 const UNIT_SIZE = { width: 1, height: 1 };

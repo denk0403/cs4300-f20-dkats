@@ -1,27 +1,31 @@
 /**
  * @typedef Shape
- * @property {"RECTANGLE" | "TRIANGLE" | "CIRCLE" | "STAR"} type
- * @property {{ x: Number, y: Number }} center
+ * @property {"RECTANGLE" | "TRIANGLE" | "CIRCLE" | "STAR" | "CUBE"} type
+ * @property {{ x: Number, y: Number, z: Number }} center
  * @property {{ width: Number, height: Number }} dimensions
  * @property {RGBColor} color
- * @property {{ x: Number, y: Number }} translation
- * @property {{ z: Number}} rotation
- * @property {{ x: Number, y: Number }} scale
+ * @property {{ x: Number, y: Number, z: Number }} translation
+ * @property {{ x: Number, y: Number, z: Number }} rotation
+ * @property {{ x: Number, y: Number, z: Number }} scale
  */
 
 const RED_HEX = "#FF0000";
 const RED_RGB = webglUtils.hexToRgb(RED_HEX);
 const BLUE_HEX = "#0000FF";
 const BLUE_RGB = webglUtils.hexToRgb(BLUE_HEX);
+const GREEN_HEX = "#00FF00";
+const GREEN_RGB = webglUtils.hexToRgb(GREEN_HEX);
 
-// SHAPES
+// 2D-SHAPES
 const RECTANGLE = "RECTANGLE";
 const TRIANGLE = "TRIANGLE"; // Isosceles Triangle
 const CIRCLE = "CIRCLE";
 const STAR = "STAR"; // 5-point Star
+// 3D-SHAPES
+const CUBE = "CUBE";
 
-const ORIGIN = { x: 0, y: 0 };
-const UNIT_SIZE = { width: 1, height: 1 };
+const ORIGIN = { x: 0, y: 0, z: 0 };
+const UNIT_SIZE = { width: 1, height: 1, depth: 1 };
 
 /**
  * @type {Shape[]}
@@ -32,18 +36,27 @@ let shapes = [
         center: ORIGIN,
         dimensions: { ...UNIT_SIZE },
         color: { ...BLUE_RGB },
-        translation: { x: 200, y: 100 },
-        rotation: { z: 0 },
-        scale: { x: 50, y: 50 },
+        translation: { x: -15, y: 0, z: -20 },
+        rotation: { x: 0, y: 0, z: 0 },
+        scale: { x: 10, y: 10, z: 10 },
     },
     {
         type: TRIANGLE,
         center: ORIGIN,
         dimensions: { ...UNIT_SIZE },
         color: { ...RED_RGB },
-        translation: { x: 300, y: 100 },
-        rotation: { z: 0 },
-        scale: { x: 50, y: 50 },
+        translation: { x: 15, y: 0, z: -20 },
+        scale: { x: 10, y: 10, z: 10 },
+        rotation: { x: 0, y: 0, z: 180 },
+    },
+    {
+        type: CUBE,
+        center: ORIGIN,
+        dimensions: { ...UNIT_SIZE },
+        color: { ...GREEN_RGB },
+        translation: { x: -15, y: -15, z: -75 },
+        scale: { x: 1, y: 1, z: 1 },
+        rotation: { x: 0, y: 45, z: 0 },
     },
 ];
 
@@ -70,13 +83,19 @@ let selectedShapeIndex = 0; // The index of the currently selected shape in the 
  * @param {MouseEvent} event
  */
 const doMouseDown = (event) => {
-    const boundingRectangle = canvas.getBoundingClientRect();
-    const x = event.clientX - boundingRectangle.left;
-    const y = event.clientY - boundingRectangle.top;
-    const translation = { x, y };
-    const shape = document.querySelector("input[name='shape']:checked").value;
+    const boundingRectangle = gl.canvas.getBoundingClientRect();
+    const x = Math.round(event.clientX - boundingRectangle.left - boundingRectangle.width / 2);
+    const y = -Math.round(event.clientY - boundingRectangle.top - boundingRectangle.height / 2);
+    const translation = { x, y, z: -150 };
+    const rotation = { x: 0, y: 0, z: 180 };
+    const type = document.querySelector("input[name='shape']:checked").value;
+    const shape = {
+        translation,
+        rotation,
+        type,
+    };
 
-    addShape(translation, shape);
+    addShape(shape, type);
 };
 
 /**
@@ -107,9 +126,7 @@ const updateScale = (event, axis) => {
  * @param {String} axis The property to update
  */
 const updateRotation = (event, axis) => {
-    const value = event.target.value;
-    const angleInDegrees = ((360 - value) * Math.PI) / 180;
-    shapes[selectedShapeIndex].rotation[axis] = angleInDegrees;
+    shapes[selectedShapeIndex].rotation[axis] = event.target.value;
     render();
 };
 
@@ -120,6 +137,15 @@ const updateRotation = (event, axis) => {
 const updateColor = (event) => {
     const colorValue = webglUtils.hexToRgb(event.target.value);
     shapes[selectedShapeIndex].color = colorValue;
+    render();
+};
+
+/**
+ * Event handler for field of view updates.
+ * @param {InputEvent} event
+ */
+const updateFieldOfView = (event) => {
+    fieldOfViewRadians = m4.degToRad(event.target.value);
     render();
 };
 
@@ -136,10 +162,16 @@ const init = () => {
     // Setup transformation handlers
     document.getElementById("tx").onchange = (event) => updateTranslation(event, "x");
     document.getElementById("ty").onchange = (event) => updateTranslation(event, "y");
+    document.getElementById("tz").onchange = (event) => updateTranslation(event, "z");
     document.getElementById("sx").onchange = (event) => updateScale(event, "x");
     document.getElementById("sy").onchange = (event) => updateScale(event, "y");
+    document.getElementById("sz").onchange = (event) => updateScale(event, "z");
+    document.getElementById("rx").onchange = (event) => updateRotation(event, "x");
+    document.getElementById("ry").onchange = (event) => updateRotation(event, "y");
     document.getElementById("rz").onchange = (event) => updateRotation(event, "z");
+    document.getElementById("fv").onchange = (event) => updateFieldOfView(event);
     document.getElementById("color").onchange = (event) => updateColor(event);
+
     selectShape(0);
 
     // Get WebGL context
@@ -148,8 +180,8 @@ const init = () => {
     // create and use a GLSL program
     const program = webglUtils.createProgramFromScripts(
         gl,
-        "#vertex-shader-2d",
-        "#fragment-shader-2d",
+        "#vertex-shader-3d",
+        "#fragment-shader-3d",
     );
     gl.useProgram(program);
 
@@ -168,7 +200,26 @@ const init = () => {
     // configure canvas resolution and clear the canvas
     gl.uniform2f(uniformResolution, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+};
+
+let fieldOfViewRadians = m4.degToRad(60);
+/**
+ * Helper function for returning the transformation matrix for a given shape.
+ * @param {WebGLRenderingContext} gl
+ * @param {Shape} shape
+ * @param {Number} aspect
+ * @param {Number} zNear
+ * @param {Number} zFar
+ */
+const computeModelViewMatrix = (gl, shape, aspect, zNear, zFar) => {
+    let M = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+    M = m4.translate(M, shape.translation.x, shape.translation.y, shape.translation.z);
+    M = m4.xRotate(M, m4.degToRad(shape.rotation.x));
+    M = m4.yRotate(M, m4.degToRad(shape.rotation.y));
+    M = m4.zRotate(M, m4.degToRad(shape.rotation.z));
+    M = m4.scale(M, shape.scale.x, shape.scale.y, shape.scale.z);
+    return M;
 };
 
 /**
@@ -176,7 +227,14 @@ const init = () => {
  */
 const render = () => {
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
-    gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(attributeCoords, 3, gl.FLOAT, false, 0, 0);
+
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
+
+    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    const zNear = 1;
+    const zFar = 2000;
 
     const $shapeList = $("#object-list");
     $shapeList.empty();
@@ -202,7 +260,8 @@ const render = () => {
                         />
                         ${shape.type};
                         X: ${shape.translation.x};
-                        Y: ${shape.translation.y}
+                        Y: ${shape.translation.y};
+                        Z: ${shape.translation.z}
                     </label>
                 </li>
             `);
@@ -211,13 +270,14 @@ const render = () => {
             gl.uniform4f(uniformColor, shape.color.red, shape.color.green, shape.color.blue, 1);
 
             // compute transformation matrix
-            let matrix = m3.projection(gl.canvas.clientWidth, gl.canvas.clientHeight);
-            matrix = m3.translate(matrix, shape.translation.x, shape.translation.y);
-            matrix = m3.rotate(matrix, shape.rotation.z);
-            matrix = m3.scale(matrix, shape.scale.x, shape.scale.y);
+            // let matrix = m3.projection(gl.canvas.clientWidth, gl.canvas.clientHeight);
+            // matrix = m3.translate(matrix, shape.translation.x, shape.translation.y);
+            // matrix = m3.rotate(matrix, shape.rotation.z);
+            // matrix = m3.scale(matrix, shape.scale.x, shape.scale.y);
+            const matrix = computeModelViewMatrix(gl.canvas, shape, aspect, zNear, zFar);
 
             // apply transformation matrix.
-            gl.uniformMatrix3fv(uniformMatrix, false, matrix);
+            gl.uniformMatrix4fv(uniformMatrix, false, matrix);
 
             if (shape.type === RECTANGLE) {
                 renderRectangle(shape);
@@ -227,6 +287,8 @@ const render = () => {
                 renderCircle(shape);
             } else if (shape.type === STAR) {
                 renderStar(shape);
+            } else if (shape.type === CUBE) {
+                renderCube(shape);
             }
         });
     }
@@ -243,7 +305,7 @@ const renderRectangle = (rectangle) => {
 
     gl.bufferData(
         gl.ARRAY_BUFFER,
-        new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
+        new Float32Array([x1, y1, 0, x2, y1, 0, x1, y2, 0, x1, y2, 0, x2, y1, 0, x2, y2, 0]),
         gl.STATIC_DRAW,
     );
 
@@ -261,7 +323,7 @@ const renderTriangle = (triangle) => {
     const x3 = triangle.center.x;
     const y3 = triangle.center.y - triangle.dimensions.height / 2;
 
-    const float32Array = new Float32Array([x1, y1, x2, y2, x3, y3]);
+    const float32Array = new Float32Array([x1, y1, 0, x2, y2, 0, x3, y3, 0]);
 
     gl.bufferData(gl.ARRAY_BUFFER, float32Array, gl.STATIC_DRAW);
 
@@ -285,7 +347,7 @@ const renderCircle = (circle, precision = 30) => {
         let y2 = (Math.sin(angle1) * circle.dimensions.height) / 2;
         let x3 = (Math.cos(angle2) * circle.dimensions.width) / 2;
         let y3 = (Math.sin(angle2) * circle.dimensions.height) / 2;
-        points.push(x1, y1, x2, y2, x3, y3);
+        points.push(x1, y1, 0, x2, y2, 0, x3, y3, 0);
     }
 
     const float32Array = new Float32Array(points);
@@ -311,7 +373,7 @@ const renderStar = (star) => {
         let y3 = (Math.sin(angle2) * star.dimensions.height) / 3;
         let x4 = (Math.cos(angle) * star.dimensions.width * 2) / 3;
         let y4 = (Math.sin(angle) * star.dimensions.height * 2) / 3;
-        points.push(x1, y1, x2, y2, x3, y3, x2, y2, x3, y3, x4, y4);
+        points.push(x1, y1, 0, x2, y2, 0, x3, y3, 0, x2, y2, 0, x3, y3, 0, x4, y4, 0);
     }
 
     const float32Array = new Float32Array(points);
@@ -320,29 +382,148 @@ const renderStar = (star) => {
 };
 
 /**
+ * @param {Shape} cube
+ */
+const renderCube = (cube) => {
+    const geometry = [
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        30,
+        0,
+        0,
+        0,
+        30,
+        0,
+        30,
+        30,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        30,
+        30,
+        0,
+        30,
+        0,
+        30,
+        30,
+        0,
+        30,
+        30,
+        30,
+        0,
+        30,
+        30,
+        30,
+        30,
+        0,
+        30,
+        0,
+        0,
+        30,
+        30,
+        30,
+        30,
+        30,
+        0,
+        30,
+        0,
+        30,
+        30,
+        30,
+        30,
+        30,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        30,
+        0,
+        30,
+        0,
+        0,
+        0,
+        30,
+        0,
+        30,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        30,
+        30,
+        0,
+        0,
+        0,
+        0,
+        30,
+        30,
+        0,
+        30,
+        0,
+        30,
+        0,
+        30,
+        30,
+        0,
+        0,
+        30,
+        30,
+        30,
+        30,
+        30,
+        30,
+        30,
+        0,
+        0,
+        30,
+        30,
+        0,
+    ];
+    const float32Array = new Float32Array(geometry);
+    gl.bufferData(gl.ARRAY_BUFFER, float32Array, gl.STATIC_DRAW);
+    gl.drawArrays(gl.TRIANGLES, 0, 6 * 6);
+};
+
+/**
  * Adds an abstract shape to the array of shapes
  * and rerenders the canvas.
- * @param {{x: Number, y: Number}} translation
+ * @param {Shape} newShape
  * @param {String} type
  */
-const addShape = (translation, type) => {
+const addShape = (newShape, type) => {
     const colorHex = document.getElementById("color").value;
     const colorRgb = webglUtils.hexToRgb(colorHex);
     let tx = 0;
     let ty = 0;
-    if (translation) {
-        tx = translation.x;
-        ty = translation.y;
-    }
+    let tz = 0;
     const shape = {
         type: type,
         center: ORIGIN,
         dimensions: UNIT_SIZE,
         color: colorRgb,
-        translation: { x: tx, y: ty, z: 0 },
+        translation: { x: tx, y: ty, z: tz },
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: 20, y: 20, z: 20 },
     };
+    if (newShape) {
+        Object.assign(shape, newShape);
+    }
     shapes.push(shape);
     render();
 };
@@ -366,9 +547,14 @@ const selectShape = (selectedIndex) => {
     selectedShapeIndex = selectedIndex;
     document.getElementById("tx").value = shapes[selectedIndex].translation.x;
     document.getElementById("ty").value = shapes[selectedIndex].translation.y;
+    document.getElementById("tz").value = shapes[selectedIndex].translation.z;
     document.getElementById("sx").value = shapes[selectedIndex].scale.x;
     document.getElementById("sy").value = shapes[selectedIndex].scale.y;
+    document.getElementById("sz").value = shapes[selectedIndex].scale.z;
+    document.getElementById("rx").value = shapes[selectedIndex].rotation.x;
+    document.getElementById("ry").value = shapes[selectedIndex].rotation.y;
     document.getElementById("rz").value = shapes[selectedIndex].rotation.z;
+    document.getElementById("fv").value = m4.radToDeg(fieldOfViewRadians);
     const hexColor = webglUtils.rgbToHex(shapes[selectedIndex].color);
     document.getElementById("color").value = hexColor;
 };

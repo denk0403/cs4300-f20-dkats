@@ -76,4 +76,36 @@ const webglUtils = {
         const blueHex = webglUtils.componentToHex(rgb.blue * 256);
         return `#${redHex}${greenHex}${blueHex}`;
     },
+    /**
+     * Toggles the canvas's "look at" strategy an rerenders.
+     * @param {InputEvent} event
+     */
+    toggleLookAt: (event) => {
+        lookAt = event.target.checked;
+        render();
+    },
+    /**
+     * Updates the given "look at" axis position and rerenders.
+     * @param {InputEvent} event
+     */
+    updateLookAtTranslation: (event, index) => {
+        target[index] = event.target.value;
+        render();
+    },
+    /**
+     * Updates the given camera axis position and rerenders.
+     * @param {InputEvent} event
+     */
+    updateCameraTranslation: (event, axis) => {
+        camera.translation[axis] = event.target.value;
+        render();
+    },
+    /**
+     * Updates the given camera axis rotation and rerenders.
+     * @param {InputEvent} event
+     */
+    updateCameraRotation: (event, axis) => {
+        camera.rotation[axis] = event.target.value;
+        render();
+    },
 };

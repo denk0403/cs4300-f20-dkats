@@ -9,7 +9,30 @@
             border: 1px solid gray;
         }
 
-        div.labelGroup {
+        .center {
+            display: flex;
+
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* .fpButtons button + button {
+            margin: 0 0 0 5px;
+        } */
+
+        .fpButtons {
+            display: grid;
+            grid-template-columns: repeat(3, 45px);
+            grid-template-rows: repeat(2, 35px);
+        }
+
+        .fpButtons>button {
+            margin: 2.5px;
+        }
+
+        div.labelGroup,
+        div.block {
             display: block;
         }
 
@@ -83,7 +106,7 @@
 </head>
 
 <body onload="init();render()">
-    <div class="container m-auto">
+    <div class="center">
         <div class="d-flex">
             <div class="d-inline-block m-4" style="vertical-align: top; min-width: 175px;">
                 <h2 style="text-align: center;">Object List</h2>
@@ -249,6 +272,18 @@
                     </span>
                 </span>
             </div>
+
+            <!-- <div class="m-4">
+                <h2>First Person</h2>
+                <div class="fpButtons">
+                    <button id="turnLeft">&lt&lt</button>
+                    <button id="forward">↑</button>
+                    <button id="turnRight">&gt&gt</button>
+                    <button id="left">←</button>
+                    <button id="back">↓</button>
+                    <button id="right">→</button>
+                </div>
+            </div> -->
         </div>
     </div>
 

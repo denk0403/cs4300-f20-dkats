@@ -185,25 +185,43 @@ const init = () => {
     document.getElementById("lookAt").onchange = (event) => {
         webglUtils.toggleLookAt(event);
         if (lookAt) {
-            $("#lookAtGroup").find('input[type="number"]').each(function () { this.disabled = false;});
-            $("#cameraRotationGroup").find('input[type="number"]').each(function () { this.disabled = true;});
+            $("#lookAtGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = false;
+                });
+            $("#cameraRotationGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = true;
+                });
         } else {
-            $("#lookAtGroup").find('input[type="number"]').each(function () { this.disabled = true;});
-            $("#cameraRotationGroup").find('input[type="number"]').each(function () { this.disabled = false;});
+            $("#lookAtGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = true;
+                });
+            $("#cameraRotationGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = false;
+                });
         }
     };
-    document.getElementById("ctx").onchange = (event) =>
-        webglUtils.updateCameraTranslation(event, "x");
-    document.getElementById("cty").onchange = (event) =>
-        webglUtils.updateCameraTranslation(event, "y");
-    document.getElementById("ctz").onchange = (event) =>
-        webglUtils.updateCameraTranslation(event, "z");
-    document.getElementById("crx").onchange = (event) =>
-        webglUtils.updateCameraRotation(event, "x");
-    document.getElementById("cry").onchange = (event) =>
-        webglUtils.updateCameraRotation(event, "y");
-    document.getElementById("crz").onchange = (event) =>
-        webglUtils.updateCameraRotation(event, "z");
+
+    const ctx = document.getElementById("ctx"),
+        cty = document.getElementById("cty"),
+        ctz = document.getElementById("ctz"),
+        crx = document.getElementById("crx"),
+        cry = document.getElementById("cry"),
+        crz = document.getElementById("crz");
+
+    ctx.onchange = (event) => webglUtils.updateCameraTranslation(event, "x");
+    cty.onchange = (event) => webglUtils.updateCameraTranslation(event, "y");
+    ctz.onchange = (event) => webglUtils.updateCameraTranslation(event, "z");
+    crx.onchange = (event) => webglUtils.updateCameraRotation(event, "x");
+    cry.onchange = (event) => webglUtils.updateCameraRotation(event, "y");
+    crz.onchange = (event) => webglUtils.updateCameraRotation(event, "z");
     document.getElementById("ltx").onchange = (event) =>
         webglUtils.updateLookAtTranslation(event, 0);
     document.getElementById("lty").onchange = (event) =>
@@ -212,12 +230,37 @@ const init = () => {
         webglUtils.updateLookAtTranslation(event, 2);
 
     document.getElementById("lookAt").checked = lookAt;
-    document.getElementById("ctx").value = camera.translation.x;
-    document.getElementById("cty").value = camera.translation.y;
-    document.getElementById("ctz").value = camera.translation.z;
-    document.getElementById("crx").value = camera.rotation.x;
-    document.getElementById("cry").value = camera.rotation.y;
-    document.getElementById("crz").value = camera.rotation.z;
+    ctx.value = camera.translation.x;
+    cty.value = camera.translation.y;
+    ctz.value = camera.translation.z;
+    crx.value = camera.rotation.x;
+    cry.value = camera.rotation.y;
+    crz.value = camera.rotation.z;
+
+    // document.getElementById("turnLeft").addEventListener("mousedown", () => {
+    //     cry.value = Number(cry.value) + 1;
+    //     cry.dispatchEvent(new Event("change"));
+    // });
+    // document.getElementById("forward").addEventListener("mousedown", () => {
+    //     cty.value = Number(cty.value) + 1;
+    //     cty.dispatchEvent(new Event("change"));
+    // });
+    // document.getElementById("turnRight").addEventListener("mousedown", () => {
+    //     cry.value = Number(cry.value) - 1;
+    //     cry.dispatchEvent(new Event("change"));
+    // });
+    // document.getElementById("left").addEventListener("mousedown", () => {
+    //     ctx.value = Number(ctx.value) - 1;
+    //     ctx.dispatchEvent(new Event("change"));
+    // });
+    // document.getElementById("back").addEventListener("mousedown", () => {
+    //     cty.value = Number(cty.value) - 1;
+    //     cty.dispatchEvent(new Event("change"));
+    // });
+    // document.getElementById("right").addEventListener("mousedown", () => {
+    //     ctx.value = Number(ctx.value) + 1;
+    //     ctx.dispatchEvent(new Event("change"));
+    // });
 
     selectShape(0);
 

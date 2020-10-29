@@ -1,3 +1,4 @@
+"use strict";
 /**
  * @typedef Shape
  * @property {"RECTANGLE" | "TRIANGLE" | "CIRCLE" | "STAR" | "CUBE"} type
@@ -26,6 +27,15 @@ const CUBE = "CUBE";
 
 const ORIGIN = { x: 0, y: 0, z: 0 };
 const UNIT_SIZE = { width: 1, height: 1, depth: 1 };
+
+// Camera constants and values
+let camera = {
+    translation: { x: -45, y: -35, z: 21 },
+    rotation: { x: 40, y: 235, z: 0 },
+};
+const up = [0, 1, 0]; // declare up to be in +y direction
+let target = [0, 0, 0]; // declare the origin as the target we'll look at
+let lookAt = true; // we'll toggle lookAt on and off
 
 /**
  * @type {Shape[]}
@@ -172,6 +182,220 @@ const init = () => {
     document.getElementById("fv").onchange = (event) => updateFieldOfView(event);
     document.getElementById("color").onchange = (event) => updateColor(event);
 
+    // Setup camera handlers
+    document.getElementById("lookAt").onchange = (event) => {
+        webglUtils.toggleLookAt(event);
+        if (lookAt) {
+            $("#lookAtGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = false;
+                });
+            $("#cameraRotationGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = true;
+                });
+        } else {
+            $("#lookAtGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = true;
+                });
+            $("#cameraRotationGroup")
+                .find('input[type="number"]')
+                .each(function () {
+                    this.disabled = false;
+                });
+        }
+    };
+
+    const ctx = document.getElementById("ctx"),
+        cty = document.getElementById("cty"),
+        ctz = document.getElementById("ctz"),
+        crx = document.getElementById("crx"),
+        cry = document.getElementById("cry"),
+        crz = document.getElementById("crz");
+
+    ctx.onchange = (event) => webglUtils.updateCameraTranslation(event, "x");
+    cty.onchange = (event) => webglUtils.updateCameraTranslation(event, "y");
+    ctz.onchange = (event) => webglUtils.updateCameraTranslation(event, "z");
+    crx.onchange = (event) => webglUtils.updateCameraRotation(event, "x");
+    cry.onchange = (event) => webglUtils.updateCameraRotation(event, "y");
+    crz.onchange = (event) => webglUtils.updateCameraRotation(event, "z");
+    document.getElementById("ltx").onchange = (event) =>
+        webglUtils.updateLookAtTranslation(event, 0);
+    document.getElementById("lty").onchange = (event) =>
+        webglUtils.updateLookAtTranslation(event, 1);
+    document.getElementById("ltz").onchange = (event) =>
+        webglUtils.updateLookAtTranslation(event, 2);
+
+    document.getElementById("lookAt").checked = lookAt;
+    ctx.value = camera.translation.x;
+    cty.value = camera.translation.y;
+    ctz.value = camera.translation.z;
+    crx.value = camera.rotation.x;
+    cry.value = camera.rotation.y;
+    crz.value = camera.rotation.z;
+
+    // const turnLeftAction = (diff) => {
+    //     cry.value = Number(cry.value) + diff;
+    //     cry.dispatchEvent(new Event("change"));
+    // };
+    // const forwardAction = (diff) => {
+    //     if (lookAt) {
+    //         const { x: cx, y: cy, z: cz } = camera.translation;
+    //         const [lx, ly, lz] = target;
+
+    //         const dx = lx - cx,
+    //             dy = ly - cy,
+    //             dz = lz - cz;
+    //         const length = Math.hypot(dx, dy, dz);
+
+    //         const nx = cx + (dx / length) * diff;
+    //         const ny = cy + (dy / length) * diff;
+    //         const nz = cz + (dz / length) * diff;
+
+    //         ctx.value = nx;
+    //         cty.value = ny;
+    //         ctz.value = nz;
+
+    //         camera.translation.x = nx;
+    //         camera.translation.y = ny;
+    //         camera.translation.z = nz;
+    //         render();
+    //     }
+    // };
+    // const turnRightAction = (diff) => {
+    //     cry.value = Number(cry.value) - diff;
+    //     cry.dispatchEvent(new Event("change"));
+    // };
+    // const leftAction = (diff) => {
+    //     if (lookAt) {
+    //         const { x: cx, z: cz } = camera.translation;
+    //         const [lx, ly, lz] = target;
+
+    //         const rotationAngle = (diff * Math.PI) / 180;
+    //         const mat = m3.multiply(
+    //             m3.translation(-lx, -lz),
+    //             m3.multiply(m3.rotation(rotationAngle), m3.translation(lx, lz)),
+    //         );
+
+    //         let result = [];
+    //         for (let row = 0; row < 3; row++) {
+    //             result.push(mat[row * 3] * cx + mat[row * 3 + 1] * cz + mat[row * 3 + 2] * 1);
+    //         }
+
+    //         const nx = mat[0] * cx + mat[1] * cz + mat[2];
+    //         const nz = mat[3] * cx + mat[4] * cz + mat[5];
+
+    //         ctx.value = nx;
+    //         ctz.value = nz;
+
+    //         camera.translation.x = nx;
+    //         camera.translation.z = nz;
+    //         render();
+    //     }
+    // };
+    // const backAction = (diff) => {
+    //     if (lookAt) {
+    //         const { x: cx, y: cy, z: cz } = camera.translation;
+    //         const [lx, ly, lz] = target;
+
+    //         const dx = lx - cx,
+    //             dy = ly - cy,
+    //             dz = lz - cz;
+    //         const length = Math.hypot(dx, dy, dz);
+
+    //         const nx = cx + (dx / length) * -diff;
+    //         const ny = cy + (dy / length) * -diff;
+    //         const nz = cz + (dz / length) * -diff;
+
+    //         ctx.value = nx;
+    //         cty.value = ny;
+    //         ctz.value = nz;
+
+    //         camera.translation.x = nx;
+    //         camera.translation.y = ny;
+    //         camera.translation.z = nz;
+    //         render();
+    //     }
+    // };
+    // const rightAction = (diff) => {
+    //     if (lookAt) {
+    //         const { x: cx, y: cy, z: cz } = camera.translation;
+    //         const [lx, ly, lz] = target;
+
+    //         const rotationAngle = (-diff * Math.PI) / 180;
+    //         const mat = m3.multiply(
+    //             m3.translation(-lx, -lz),
+    //             m3.multiply(m3.rotation(rotationAngle), m3.translation(lx, lz)),
+    //         );
+
+    //         let result = [];
+    //         for (let row = 0; row < 3; row++) {
+    //             result.push(mat[row * 3] * cx + mat[row * 3 + 1] * cz + mat[row * 3 + 2] * 1);
+    //         }
+
+    //         const nx = mat[0] * cx + mat[1] * cz + mat[2];
+    //         const nz = mat[3] * cx + mat[4] * cz + mat[5];
+
+    //         ctx.value = nx;
+    //         ctz.value = nz;
+
+    //         camera.translation.x = nx;
+    //         camera.translation.z = nz;
+    //         render();
+    //     }
+    // };
+
+    // document.getElementById("turnLeft").addEventListener("mousedown", () => turnLeftAction(1));
+    // document.getElementById("forward").addEventListener("mousedown", () => forwardAction(1));
+    // document.getElementById("turnRight").addEventListener("mousedown", () => turnRightAction(1));
+    // document.getElementById("left").addEventListener("mousedown", () => leftAction(1));
+    // document.getElementById("back").addEventListener("mousedown", () => backAction(1));
+    // document.getElementById("right").addEventListener("mousedown", () => rightAction(1));
+
+    // document.addEventListener("keypress", (keyEvent) => {
+    //     const delay = 50;
+    //     switch (keyEvent.key) {
+    //         case "q":
+    //             !lookAt && turnLeftAction(5);
+    //             break;
+    //         case "w": {
+    //             const elt = $("#forward");
+    //             elt.addClass("active");
+    //             forwardAction(1);
+    //             setTimeout(() => elt.removeClass("active"), delay);
+    //             break;
+    //         }
+    //         case "e":
+    //             !lookAt && turnRightAction(5);
+    //             break;
+    //         case "a": {
+    //             const elt = $("#left");
+    //             elt.addClass("active");
+    //             leftAction(5);
+    //             setTimeout(() => elt.removeClass("active"), delay);
+    //             break;
+    //         }
+    //         case "s": {
+    //             const elt = $("#back");
+    //             elt.addClass("active");
+    //             backAction(1);
+    //             setTimeout(() => elt.removeClass("active"), delay);
+    //             break;
+    //         }
+    //         case "d": {
+    //             const elt = $("#right");
+    //             elt.addClass("active");
+    //             rightAction(5);
+    //             setTimeout(() => elt.removeClass("active"), delay);
+    //             break;
+    //         }
+    //     }
+    // });
+
     selectShape(0);
 
     // Get WebGL context
@@ -206,15 +430,16 @@ const init = () => {
 let fieldOfViewRadians = m4.degToRad(60);
 /**
  * Helper function for returning the transformation matrix for a given shape.
- * @param {WebGLRenderingContext} gl
  * @param {Shape} shape
- * @param {Number} aspect
- * @param {Number} zNear
- * @param {Number} zFar
+ * @param {number[]} viewProjectionMatrix
  */
-const computeModelViewMatrix = (gl, shape, aspect, zNear, zFar) => {
-    let M = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
-    M = m4.translate(M, shape.translation.x, shape.translation.y, shape.translation.z);
+const computeModelViewMatrix = (shape, viewProjectionMatrix) => {
+    let M = m4.translate(
+        viewProjectionMatrix,
+        shape.translation.x,
+        shape.translation.y,
+        shape.translation.z,
+    );
     M = m4.xRotate(M, m4.degToRad(shape.rotation.x));
     M = m4.yRotate(M, m4.degToRad(shape.rotation.y));
     M = m4.zRotate(M, m4.degToRad(shape.rotation.z));
@@ -235,6 +460,31 @@ const render = () => {
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
     const zNear = 1;
     const zFar = 2000;
+
+    let cameraMatrix = m4.identity();
+    if (lookAt) {
+        cameraMatrix = m4.translate(
+            cameraMatrix,
+            camera.translation.x,
+            camera.translation.y,
+            camera.translation.z,
+        );
+        const cameraPosition = [cameraMatrix[12], cameraMatrix[13], cameraMatrix[14]];
+        cameraMatrix = m4.lookAt(cameraPosition, target, up);
+        cameraMatrix = m4.inverse(cameraMatrix);
+    } else {
+        cameraMatrix = m4.zRotate(cameraMatrix, m4.degToRad(camera.rotation.z));
+        cameraMatrix = m4.xRotate(cameraMatrix, m4.degToRad(camera.rotation.x));
+        cameraMatrix = m4.yRotate(cameraMatrix, m4.degToRad(camera.rotation.y));
+        cameraMatrix = m4.translate(
+            cameraMatrix,
+            camera.translation.x,
+            camera.translation.y,
+            camera.translation.z,
+        );
+    }
+    const projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+    const viewProjectionMatrix = m4.multiply(projectionMatrix, cameraMatrix);
 
     const $shapeList = $("#object-list");
     $shapeList.empty();
@@ -269,12 +519,7 @@ const render = () => {
 
             gl.uniform4f(uniformColor, shape.color.red, shape.color.green, shape.color.blue, 1);
 
-            // compute transformation matrix
-            // let matrix = m3.projection(gl.canvas.clientWidth, gl.canvas.clientHeight);
-            // matrix = m3.translate(matrix, shape.translation.x, shape.translation.y);
-            // matrix = m3.rotate(matrix, shape.rotation.z);
-            // matrix = m3.scale(matrix, shape.scale.x, shape.scale.y);
-            const matrix = computeModelViewMatrix(gl.canvas, shape, aspect, zNear, zFar);
+            const matrix = computeModelViewMatrix(shape, viewProjectionMatrix);
 
             // apply transformation matrix.
             gl.uniformMatrix4fv(uniformMatrix, false, matrix);
@@ -373,7 +618,7 @@ const renderStar = (star) => {
         let y3 = (Math.sin(angle2) * star.dimensions.height) / 3;
         let x4 = (Math.cos(angle) * star.dimensions.width * 2) / 3;
         let y4 = (Math.sin(angle) * star.dimensions.height * 2) / 3;
-        points.push(x1, y1, 0, x2, y2, 0, x3, y3, 0, x2, y2, 0, x3, y3, 0, x4, y4, 0);
+        points.push(x1, y1, 0, x2, y2, 0, x3, y3, 0, x2, y2, 0, x4, y4, 0, x3, y3, 0);
     }
 
     const float32Array = new Float32Array(points);

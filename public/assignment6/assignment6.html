@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Moving the Camera</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <style>
+        canvas {
+            border: 1px solid gray;
+        }
+
+        .center {
+            display: flex;
+
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* .fpButtons button + button {
+            margin: 0 0 0 5px;
+        } */
+
+        .fpButtons {
+            display: grid;
+            grid-template-columns: repeat(3, 45px);
+            grid-template-rows: repeat(2, 35px);
+        }
+
+        .fpButtons>button {
+            margin: 2.5px;
+        }
+
+        div.labelGroup,
+        div.block {
+            display: block;
+        }
+
+        span.labelGroup>* {
+            display: inline-block;
+        }
+
+        span.labelGroup>*+* {
+            margin-left: 15px;
+        }
+
+        label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        label .labelText {
+            display: inline-block;
+            width: 55px;
+        }
+
+        input:not([type="radio"]):not([type="checkbox"]) {
+            width: 150px;
+        }
+
+        button:hover {
+            filter: brightness(1.04);
+        }
+
+        button:active {
+            filter: brightness(0.9);
+        }
+
+        li label {
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+
+        li::marker {
+            font-weight: bold;
+        }
+
+        .fpButtons button.hover, .fpButtons button:hover {
+            filter: brightness(1.1);
+        }
+
+        .fpButtons button.active, .fpButtons button:active {
+            filter: brightness(0.91);
+        }
+    </style>
+
+    <script id="vertex-shader-3d" type="x-shader/x-vertex">
+        attribute vec4 a_coords;                                            // normal x, y coordinates
+        uniform mat4 u_matrix;                                              // transformation matrix
+        uniform vec4 u_color;
+        varying vec4 v_color;
+        void main() {
+            // multiply coordinates by a transformation matrix              // multiply (x, y) with
+            gl_Position = u_matrix * a_coords;                              // transformation matrix
+            v_color = u_color;
+        }
+    </script>
+
+    <script id="fragment-shader-3d" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 v_color;
+        void main() {
+            gl_FragColor = v_color;
+        }
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+        integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script src="webgl-utils.js"></script>
+    <script src="m3.js"></script>
+    <script src="m4.js"></script>
+    <script src="assignment6.js"></script>
+
+</head>
+
+<body onload="init();render()">
+    <div class="center">
+        <div class="d-flex">
+            <div class="d-inline-block m-4" style="vertical-align: top; min-width: 175px;">
+                <h2 style="text-align: center;">Object List</h2>
+                <ol id="object-list"></ol>
+            </div>
+            <div class="d-inline-block m-3">
+                <h1>A WebGL Mini CAD</h1>
+                <canvas id="canvas" width="600px" height="300px">
+                    Your browser does not support the canvas element.
+                </canvas>
+            </div>
+        </div>
+        <br />
+
+        <div class="d-flex">
+            <div class="camera-controls m-4">
+                <div class="labelGroup" id="lookAtGroup">
+                    <h2>
+                        <label for="lookAt" title="Toggle Look At Method">
+                            <input id="lookAt" type="checkbox" checked />
+                            <span>Look At</span>
+                        </label>
+                    </h2>
+                    <label for="ltx">
+                        <span class="labelText" title="Look at X">X:</span>
+                        <input id="ltx" type="number" value="0" step="5">
+                    </label><br />
+                    <label for="lty">
+                        <span class="labelText" title="Look at Y">Y:</span>
+                        <input id="lty" type="number" value="0" step="5">
+                    </label><br />
+                    <label for="ltz">
+                        <span class="labelText" title="Look at Z">Z:</span>
+                        <input id="ltz" type="number" value="0" step="5">
+                    </label><br />
+                </div>
+
+                <div class="labelGroup" id="cameraTranslationGroup">
+                    <h2>Camera Translation</h2>
+                    <label for="ctx">
+                        <span class="labelText" title="Camera Translation X">X:</span>
+                        <input id="ctx" type="number" value="0" step="5">
+                    </label><br />
+                    <label for="cty">
+                        <span class="labelText" title="Camera Translation Y">Y:</span>
+                        <input id="cty" type="number" value="0" step="5">
+                    </label><br />
+                    <label for="ctz">
+                        <span class="labelText" title="Camera Translation Z">Z:</span>
+                        <input id="ctz" type="number" value="0" step="5">
+                    </label><br />
+                </div>
+
+                <div class="labelGroup" id="cameraRotationGroup">
+                    <h2>Camera Rotation</h2>
+                    <label for="crx">
+                        <span class="labelText" title="Camera Rotation X">X:</span>
+                        <input id="crx" type="number" value="0" step="5" disabled>
+                    </label><br />
+                    <label for="cry">
+                        <span class="labelText" title="Camera Rotation Y">Y:</span>
+                        <input id="cry" type="number" value="0" step="5" disabled>
+                    </label><br />
+                    <label for="crz">
+                        <span class="labelText" title="Camera Rotation Z">Z:</span>
+                        <input id="crz" type="number" value="0" step="5" disabled>
+                    </label><br />
+                </div>
+            </div>
+
+            <div class="transform-controls m-4">
+                <div class="labelGroup">
+                    <h2>Select a Shape</h2>
+                    <label for="rectangleRadio">
+                        <input id="rectangleRadio" type="radio" name="shape" checked value="RECTANGLE" />
+                        <span title="Rectangle Shape">Rectangle</span>
+                    </label>
+
+                    <label for="triangleRadio">
+                        <input id="triangleRadio" type="radio" name="shape" value="TRIANGLE" />
+                        <span title="Triangle Shape">Triangle</span>
+                    </label>
+
+                    <label for="circleRadio">
+                        <input id="circleRadio" type="radio" name="shape" value="CIRCLE" />
+                        <span title="Circle Shape">Circle</span>
+                    </label>
+
+                    <label for="starRadio">
+                        <input id="starRadio" type="radio" name="shape" value="STAR" />
+                        <span title="Star Shape">Star</span>
+                    </label>
+                </div>
+
+                <div class="labelGroup">
+                    <h2>Translation</h2>
+                    <label for="tx">
+                        <span class="labelText" title="Translation X">X:</span>
+                        <input id="tx" type="number" value="0" step="5">
+                    </label>
+
+                    <label for="ty">
+                        <span class="labelText" title="Translation Y">Y:</span>
+                        <input id="ty" type="number" value="0" step="5">
+                    </label>
+
+                    <label for="tz">
+                        <span class="labelText" title="Translation Z">Z:</span>
+                        <input id="tz" type="number" value="0" step="5">
+                    </label>
+                </div>
+
+                <div class="labelGroup">
+                    <h2>Scaling</h2>
+                    <label for="sx">
+                        <span class="labelText" title="Horizontal Scale">X:</span>
+                        <input id="sx" type="number" value="1" step="0.5"><br />
+                    </label>
+
+                    <label for="sy">
+                        <span class="labelText" title="Vertical Scale">Y:</span>
+                        <input id="sy" type="number" value="1" step="0.5"><br />
+                    </label>
+
+                    <label for="sz">
+                        <span class="labelText" title="Depth Scale">Z:</span>
+                        <input id="sz" type="number" value="1" step="0.2"><br />
+                    </label>
+                </div>
+
+                <div class="labelGroup">
+                    <h2>Rotation</h2>
+                    <label for="rx">
+                        <span class="labelText" title="X Rotation (in radians)">X:</span>
+                        <input id="rx" type="number" value="0" step="2">
+                    </label>
+
+                    <label for="ry">
+                        <span class="labelText" title="Y Rotation (in radians)">Y:</span>
+                        <input id="ry" type="number" value="0" step="2">
+                    </label>
+
+                    <label for="rz">
+                        <span class="labelText" title="Z Rotation (in radians)">Z:</span>
+                        <input id="rz" type="number" value="0" step="2">
+                    </label>
+                </div>
+
+                <span class="labelGroup">
+                    <span style="display: inline-block;">
+                        <label for="color">
+                            <h2 title="Color">Color</h2>
+                            <input id="color" type="color">
+                        </label>
+                    </span>
+
+                    <span style="display: inline-block;">
+                        <h2 title="Field of view">Field of view</h2>
+                        <label for="fv">
+                            <span class="labelText" title="X angle (in radians)">X:</span>
+                            <input id="fv" type="number" value="0" step="2">
+                        </label>
+                    </span>
+                </span>
+            </div>
+
+            <!-- <div class="m-4">
+                <h2>First Person</h2>
+                <div class="fpButtons">
+                    <button id="turnLeft" accesskey="q">&lt&lt</button>
+                    <button id="forward" accesskey="w">↑</button>
+                    <button id="turnRight" accesskey="e">&gt&gt</button>
+                    <button id="left" accesskey="a">←</button>
+                    <button id="back" accesskey="s">↓</button>
+                    <button id="right" accesskey="d">→</button>
+                </div>
+            </div> -->
+        </div>
+    </div>
+
+</body>
+
+</html>

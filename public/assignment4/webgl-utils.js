@@ -89,7 +89,7 @@ const webglUtils = {
      * @param {InputEvent} event
      */
     updateLookAtTranslation: (event, index) => {
-        target[index] = event.target.value;
+        target[index] = Number(event.target.value);
         render();
     },
     /**
@@ -97,7 +97,7 @@ const webglUtils = {
      * @param {InputEvent} event
      */
     updateCameraTranslation: (event, axis) => {
-        camera.translation[axis] = event.target.value;
+        camera.translation[axis] = Number(event.target.value);
         render();
     },
     /**
@@ -105,7 +105,7 @@ const webglUtils = {
      * @param {InputEvent} event
      */
     updateCameraRotation: (event, axis) => {
-        camera.rotation[axis] = event.target.value;
+        camera.rotation[axis] = Number(event.target.value);
         render();
     },
 };

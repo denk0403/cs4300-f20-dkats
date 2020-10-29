@@ -27,15 +27,6 @@ const CUBE = "CUBE";
 const ORIGIN = { x: 0, y: 0, z: 0 };
 const UNIT_SIZE = { width: 1, height: 1, depth: 1 };
 
-// Camera constants and values
-let camera = {
-    translation: { x: -45, y: -35, z: 21 },
-    rotation: { x: 40, y: 235, z: 0 },
-};
-const up = [0, 1, 0]; // declare up to be in +y direction
-let target = [0, 0, 0]; // declare the origin as the target we'll look at
-let lookAt = true; // we'll toggle lookAt on and off
-
 /**
  * @type {Shape[]}
  */
@@ -181,87 +172,6 @@ const init = () => {
     document.getElementById("fv").onchange = (event) => updateFieldOfView(event);
     document.getElementById("color").onchange = (event) => updateColor(event);
 
-    // Setup camera handlers
-    document.getElementById("lookAt").onchange = (event) => {
-        webglUtils.toggleLookAt(event);
-        if (lookAt) {
-            $("#lookAtGroup")
-                .find('input[type="number"]')
-                .each(function () {
-                    this.disabled = false;
-                });
-            $("#cameraRotationGroup")
-                .find('input[type="number"]')
-                .each(function () {
-                    this.disabled = true;
-                });
-        } else {
-            $("#lookAtGroup")
-                .find('input[type="number"]')
-                .each(function () {
-                    this.disabled = true;
-                });
-            $("#cameraRotationGroup")
-                .find('input[type="number"]')
-                .each(function () {
-                    this.disabled = false;
-                });
-        }
-    };
-
-    const ctx = document.getElementById("ctx"),
-        cty = document.getElementById("cty"),
-        ctz = document.getElementById("ctz"),
-        crx = document.getElementById("crx"),
-        cry = document.getElementById("cry"),
-        crz = document.getElementById("crz");
-
-    ctx.onchange = (event) => webglUtils.updateCameraTranslation(event, "x");
-    cty.onchange = (event) => webglUtils.updateCameraTranslation(event, "y");
-    ctz.onchange = (event) => webglUtils.updateCameraTranslation(event, "z");
-    crx.onchange = (event) => webglUtils.updateCameraRotation(event, "x");
-    cry.onchange = (event) => webglUtils.updateCameraRotation(event, "y");
-    crz.onchange = (event) => webglUtils.updateCameraRotation(event, "z");
-    document.getElementById("ltx").onchange = (event) =>
-        webglUtils.updateLookAtTranslation(event, 0);
-    document.getElementById("lty").onchange = (event) =>
-        webglUtils.updateLookAtTranslation(event, 1);
-    document.getElementById("ltz").onchange = (event) =>
-        webglUtils.updateLookAtTranslation(event, 2);
-
-    document.getElementById("lookAt").checked = lookAt;
-    ctx.value = camera.translation.x;
-    cty.value = camera.translation.y;
-    ctz.value = camera.translation.z;
-    crx.value = camera.rotation.x;
-    cry.value = camera.rotation.y;
-    crz.value = camera.rotation.z;
-
-    // document.getElementById("turnLeft").addEventListener("mousedown", () => {
-    //     cry.value = Number(cry.value) + 1;
-    //     cry.dispatchEvent(new Event("change"));
-    // });
-    // document.getElementById("forward").addEventListener("mousedown", () => {
-    //     cty.value = Number(cty.value) + 1;
-    //     cty.dispatchEvent(new Event("change"));
-    // });
-    // document.getElementById("turnRight").addEventListener("mousedown", () => {
-    //     cry.value = Number(cry.value) - 1;
-    //     cry.dispatchEvent(new Event("change"));
-    // });
-    // document.getElementById("left").addEventListener("mousedown", () => {
-    //     ctx.value = Number(ctx.value) - 1;
-    //     ctx.dispatchEvent(new Event("change"));
-    // });
-    // document.getElementById("back").addEventListener("mousedown", () => {
-    //     cty.value = Number(cty.value) - 1;
-    //     cty.dispatchEvent(new Event("change"));
-    // });
-    // document.getElementById("right").addEventListener("mousedown", () => {
-    //     ctx.value = Number(ctx.value) + 1;
-    //     ctx.dispatchEvent(new Event("change"));
-    // });
-
     selectShape(0);
 
     // Get WebGL context
@@ -296,16 +206,15 @@ const init = () => {
 let fieldOfViewRadians = m4.degToRad(60);
 /**
  * Helper function for returning the transformation matrix for a given shape.
+ * @param {WebGLRenderingContext} gl
  * @param {Shape} shape
- * @param {number[]} viewProjectionMatrix
+ * @param {Number} aspect
+ * @param {Number} zNear
+ * @param {Number} zFar
  */
-const computeModelViewMatrix = (shape, viewProjectionMatrix) => {
-    let M = m4.translate(
-        viewProjectionMatrix,
-        shape.translation.x,
-        shape.translation.y,
-        shape.translation.z,
-    );
+const computeModelViewMatrix = (gl, shape, aspect, zNear, zFar) => {
+    let M = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+    M = m4.translate(M, shape.translation.x, shape.translation.y, shape.translation.z);
     M = m4.xRotate(M, m4.degToRad(shape.rotation.x));
     M = m4.yRotate(M, m4.degToRad(shape.rotation.y));
     M = m4.zRotate(M, m4.degToRad(shape.rotation.z));
@@ -326,31 +235,6 @@ const render = () => {
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
     const zNear = 1;
     const zFar = 2000;
-
-    let cameraMatrix = m4.identity();
-    if (lookAt) {
-        cameraMatrix = m4.translate(
-            cameraMatrix,
-            camera.translation.x,
-            camera.translation.y,
-            camera.translation.z,
-        );
-        const cameraPosition = [cameraMatrix[12], cameraMatrix[13], cameraMatrix[14]];
-        cameraMatrix = m4.lookAt(cameraPosition, target, up);
-        cameraMatrix = m4.inverse(cameraMatrix);
-    } else {
-        cameraMatrix = m4.zRotate(cameraMatrix, m4.degToRad(camera.rotation.z));
-        cameraMatrix = m4.xRotate(cameraMatrix, m4.degToRad(camera.rotation.x));
-        cameraMatrix = m4.yRotate(cameraMatrix, m4.degToRad(camera.rotation.y));
-        cameraMatrix = m4.translate(
-            cameraMatrix,
-            camera.translation.x,
-            camera.translation.y,
-            camera.translation.z,
-        );
-    }
-    const projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
-    const viewProjectionMatrix = m4.multiply(projectionMatrix, cameraMatrix);
 
     const $shapeList = $("#object-list");
     $shapeList.empty();
@@ -385,7 +269,12 @@ const render = () => {
 
             gl.uniform4f(uniformColor, shape.color.red, shape.color.green, shape.color.blue, 1);
 
-            const matrix = computeModelViewMatrix(shape, viewProjectionMatrix);
+            // compute transformation matrix
+            // let matrix = m3.projection(gl.canvas.clientWidth, gl.canvas.clientHeight);
+            // matrix = m3.translate(matrix, shape.translation.x, shape.translation.y);
+            // matrix = m3.rotate(matrix, shape.rotation.z);
+            // matrix = m3.scale(matrix, shape.scale.x, shape.scale.y);
+            const matrix = computeModelViewMatrix(gl.canvas, shape, aspect, zNear, zFar);
 
             // apply transformation matrix.
             gl.uniformMatrix4fv(uniformMatrix, false, matrix);
